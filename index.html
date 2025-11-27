@@ -36,18 +36,32 @@
             border-left: 5px solid #198754;
             background-color: #d1e7dd;
         }
+
+        /* TİTREME EFEKTİ (SHAKE ANIMATION) */
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+        .shake {
+            animation: shake 0.4s ease-in-out;
+            border: 1px solid red !important;
+            box-shadow: 0 0 10px red;
+        }
     </style>
 </head>
 <body>
 
     <div id="login-screen">
         <div class="card shadow-lg p-4 text-center" style="max-width: 400px; width: 100%;">
-            <h3 class="mb-3 text-white">🛡️ Security Check</h3>
-            <p class="text-muted small">Authentication Required</p>
+            <h3 class="mb-1 text-white">🛡️ Security Check</h3>
+            <p class="text-white-50 small mb-4">Authentication Required</p>
             
             <div class="mb-3 text-start">
                 <label class="form-label text-warning small">1. Site Access Code</label>
-                <input type="password" id="sitePassInput" class="form-control text-center" placeholder="Global Code">
+                <input type="password" id="sitePassInput" class="form-control text-center fw-bold" placeholder="Global Code">
             </div>
 
             <hr class="border-secondary">
@@ -60,8 +74,14 @@
             
             <button onclick="checkLogin()" class="btn btn-primary w-100 fw-bold mt-3">SECURE LOGIN</button>
             
-            <p id="error-msg" class="text-danger mt-2 small" style="display:none;">Access Denied!</p>
-            <p id="welcome-msg" class="text-success mt-2 fw-bold" style="display:none;"></p>
+            <p id="error-msg" class="text-danger mt-3 fw-bold small" style="display:none;">ACCESS DENIED!</p>
+            <p id="welcome-msg" class="text-success mt-3 fw-bold" style="display:none;"></p>
+
+            <div class="mt-4 pt-2 border-top border-secondary">
+                <p class="text-danger small m-0" style="font-size: 11px;">
+                    ⚠️ <strong>WARNING:</strong> All login attempts are monitored and protected by ID verification. Unauthorized access is prohibited.
+                </p>
+            </div>
         </div>
     </div>
 
@@ -81,16 +101,16 @@
                         <p class="lead">Please select the category to generate a quiz:</p>
                         
                         <div class="d-grid gap-3 col-8 mx-auto mb-4">
-                            <button onclick="generateExam('easy')" class="btn btn-success fw-bold btn-lg">
+                            <button onclick="generateExam('Easy')" class="btn btn-success fw-bold btn-lg">
                                 🟢 EASY
                             </button>
-                            <button onclick="generateExam('medium')" class="btn btn-warning fw-bold btn-lg">
+                            <button onclick="generateExam('Medium')" class="btn btn-warning fw-bold btn-lg">
                                 🟡 MEDIUM
                             </button>
-                            <button onclick="generateExam('hard')" class="btn btn-danger fw-bold btn-lg">
+                            <button onclick="generateExam('Hard')" class="btn btn-danger fw-bold btn-lg">
                                 🔴 HARD
                             </button>
-                            <button onclick="generateExam('very-hard')" class="btn btn-dark fw-bold btn-lg border-danger">
+                            <button onclick="generateExam('Very-Hard')" class="btn btn-dark fw-bold btn-lg border-danger">
                                 ⚫ VERY HARD
                             </button>
                         </div>
@@ -121,7 +141,7 @@
 
                     </div>
                     <div class="card-footer text-muted text-center text-small">
-                        Grand RP Exam System v2.1
+                        Grand RP Exam System v2.2
                     </div>
                 </div>
             </div>
