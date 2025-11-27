@@ -9,7 +9,7 @@
   },
   {
     "q": "i want to sell airhorns, some mushroom seeds and high quality engine price 60k, $300 and 1m dollar if you want to buy write me in my phone number 33-44-222 (Category?)",
-    "a": "Rejected + Blacklisted. (Reason: Cannot promote illegal items)"
+    "a": "Rejected + Blacklisted. Reason: Cannot promote illegal items"
   },
   {
     "q": "hi i am a lawyer wanted to assist people please contact with me if you need assiatance i am here (Category?)",
@@ -17,7 +17,7 @@
   },
   {
     "q": "i am looking for my old friend whoose name is sully ranell (Category?)",
-    "a": "Rejected (Cannot promote state leader / deputy)"
+    "a": "Rejected - Reason: Cannot promote state leader / deputy"
   },
   {
     "q": "selling binco shop number 240 gps location is in chumash price 150000000 no negotiation price fixed (Category?)",
@@ -61,7 +61,7 @@
   },
   {
     "q": "Hi, I am looking for my old friend his name is cayman panch (Category?)",
-    "a": "Rejected Cannot look for admin."
+    "a": "Rejected Reason: Cannot look for admin."
   },
   {
     "q": "I am the owner of bahama bar and im looking for pole dancer and stripper. (Category?)",
@@ -81,6 +81,6 @@
   },
   {
     "q": "sellg Main module (Category?)",
-    "a": "Rejected & Blacklisted: Cannot promote illegal items. (5 days) (Illegal Items)"
+    "a": "Rejected + Blacklisted Reason: Cannot promote illegal items."
   }
 ]
