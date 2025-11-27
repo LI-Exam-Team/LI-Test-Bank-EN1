@@ -13,14 +13,24 @@ window.onload = function() {
     token = urlParams.get('token');
 
     if (!token) { disableStart("Invalid Link!"); return; }
-    if (localStorage.getItem('used_' + token)) { disableStart("⚠️ This link has already been used!"); return; }
+    
+    // KONTROL 1: Daha önce "Start"a basıldı mı?
+    if (localStorage.getItem('used_' + token)) { 
+        disableStart("⚠️ This exam has already been taken!"); 
+        return; 
+    }
 
     try {
         const jsonString = decodeURIComponent(escape(atob(token)));
         examData = JSON.parse(jsonString);
 
+        // KONTROL 2: Link oluşturulalı 15 dakika geçti mi?
         const diffMinutes = (new Date().getTime() - examData.time) / 1000 / 60;
-        if (diffMinutes > 30) { disableStart("⚠️ This link has expired!"); return; }
+        
+        if (diffMinutes > 15) { 
+            disableStart("⚠️ This link has expired! (15 min limit passed)"); 
+            return; 
+        }
 
         const introHTML = `
         <div style="text-align: left; color: #e9ecef; font-size: 13px; line-height: 1.4;">
@@ -30,8 +40,8 @@ window.onload = function() {
                 <li>You will have <strong>15 minutes</strong> to edit 7 ADs.</li>
                 <li>You will need a minimum of <strong>5 correct answers to pass the test</strong>.</li>
                 <li>You can use the LifeInvader <strong>Internal Policy</strong> along with the <strong>Sellable vehicles</strong> list.</li>
-                <li>If the ad text is correct, you can leave the text box <strong>EMPTY</strong>.</li>
                 <li>Some ADs may need <strong>Rejecting</strong> so keep an eye out for that.</li>
+                <li>You can copy and paste the numerical symbol here: <strong>№</strong> if you need.</li>
                 <li>At the end of each AD please mention the <strong>Category</strong> it goes under in brackets.</li>
                 <li>All the best! <img src="LI_TOP.png" style="height:18px; vertical-align:middle;"></li>
             </ul>
@@ -54,7 +64,9 @@ function disableStart(msg) {
 }
 
 function startExam() {
+    // START'A BASILDIĞI AN LİNKİ YAK (KİLİTLE)
     localStorage.setItem('used_' + token, 'true');
+    
     document.getElementById('start-screen').style.display = 'none';
     document.getElementById('exam-container').style.display = 'block';
     loadQuestions();
@@ -78,7 +90,7 @@ function loadQuestions() {
                         
                         <div class="row g-2">
                             <div class="col-md-8">
-                                <textarea id="answer-text-${i}" class="form-control answer-input" rows="2" placeholder="Ad Text (Leave empty if correct)"></textarea>
+                                <textarea id="answer-text-${i}" class="form-control answer-input" rows="2" placeholder="Corrected Ad Text"></textarea>
                             </div>
                             <div class="col-md-4">
                                 <input type="text" id="answer-cat-${i}" class="form-control cat-input" placeholder="Category">
@@ -95,17 +107,24 @@ function updateTimer() {
     const timerBox = document.getElementById('timer-box');
     let m = Math.floor(timeLeft / 60);
     let s = timeLeft % 60;
+    
+    // Süre 1 dakikadan az kalınca rengi kırmızı yap (Görsel Uyarı)
+    if (timeLeft < 60) {
+        timerBox.style.color = "red";
+        timerBox.classList.add("shake"); // Son saniyelerde titret
+    }
+
     timerBox.innerText = `${m}:${s < 10 ? '0'+s : s}`;
+    
     if (timeLeft <= 0) {
         clearInterval(timerInterval);
-        alert("TIME IS UP! Submitting...");
-        finishExam();
+        finishExam(); 
     } else {
         timeLeft--;
     }
 }
 
-// --- YARDIMCI FONKSİYONLAR ---
+// --- YARDIMCI FONKSİYON ---
 function parseAnswerString(fullStr) {
     const lastParen = fullStr.lastIndexOf('(');
     if (lastParen > -1) {
@@ -117,17 +136,7 @@ function parseAnswerString(fullStr) {
     return { text: fullStr.trim(), cat: "" };
 }
 
-function superClean(str) {
-    if (!str) return "";
-    return str.toLowerCase()
-        .replace(/[.,:;'"()\-]/g, "") 
-        .replace(/\s+/g, " ") 
-        .replace(/\bblacklist\b/g, "blacklisted") 
-        .replace(/[+&]/g, "and") 
-        .trim();
-}
-
-// --- FİNAL PUANLAMA MOTORU ---
+// --- FİNAL PUANLAMA MOTORU (GÜNCELLENMİŞ VERSİYON) ---
 function finishExam() {
     clearInterval(timerInterval);
     document.getElementById('exam-container').style.display = 'none';
@@ -142,33 +151,46 @@ function finishExam() {
         const possibleAnswersRaw = allQuestionsData[qIndex].a.split(" or ");
         
         let isQuestionPassed = false;
-        let bestMatchCorrect = null;
 
         for (let rawOption of possibleAnswersRaw) {
             const correctObj = parseAnswerString(rawOption);
-            bestMatchCorrect = correctObj;
-
-            const cleanUserText = superClean(userAdText);
-            const cleanCorrectText = superClean(correctObj.text);
-            const cleanOriginalQuestion = superClean(originalQuestionText);
-
+            
+            // --- GÜNCELLENMİŞ DOĞRULAMA (Regex + Strict Mode) ---
             let isTextMatch = false;
-            // 1. Doğrudan Eşleşme
-            if (cleanUserText === cleanCorrectText) {
-                isTextMatch = true;
+
+            // DURUM 1: Eğer doğru cevap "Rejected" içeriyorsa -> ESNEK MOD (Regex)
+            if (correctObj.text.startsWith("Rejected")) {
+                // Regex Açıklaması:
+                // ^Rejected       -> Cümle Rejected ile başlamalı
+                // [\s\+\-\&]* -> Araya boşluk, +, -, & gelebilir
+                // (and)?          -> Araya 'and' gelebilir
+                // [\s]* -> Yine boşluk olabilir
+                // Blacklist       -> 'Blacklist' kelimesi ZORUNLU
+                // (ed)?           -> 'ed' eki OPSİYONEL (Yani Blacklist de olur Blacklisted da)
+                
+                const rejectionPattern = /^Rejected[\s\+\-\&]*(and)?[\s]*Blacklist(ed)?/i;
+                
+                if (rejectionPattern.test(userAdText)) {
+                    isTextMatch = true;
+                }
+            } 
+            // DURUM 2: Normal İlanlar -> KATI MOD (Birebir Eşleşme)
+            else {
+                // Burada "Swift Deluxe." disiplini devam eder.
+                // Nokta eksikse veya harf hatası varsa GEÇİRMEZ.
+                if (userAdText === correctObj.text) {
+                    isTextMatch = true;
+                }
             }
-            // 2. Zımni Onay (Boş Bırakma)
-            else if (userAdText === "" && cleanOriginalQuestion.includes(cleanCorrectText)) {
-                isTextMatch = true;
-            }
+            // ----------------------------------------------------
 
             let isCatMatch = false;
-            const cleanUserCat = superClean(userCatText);
-            const cleanCorrectCat = superClean(correctObj.cat);
+            const cleanUserCat = userCatText.replace(/[()]/g, '').toLowerCase().trim();
+            const cleanCorrectCat = correctObj.cat.toLowerCase().trim();
 
             if (cleanUserCat === cleanCorrectCat) {
                 isCatMatch = true;
-            } else if (correctObj.text.toLowerCase().includes("rejected")) {
+            } else if (correctObj.text.startsWith("Rejected")) {
                 if (cleanUserCat === "" || cleanUserCat === cleanCorrectCat) {
                     isCatMatch = true;
                 }
@@ -182,28 +204,35 @@ function finishExam() {
 
         if (isQuestionPassed) correctCount++;
         
-        // --- GÜNCELLENEN RAPOR DETAYI (HER DURUMDA GÖSTER) ---
-        const primeCorrect = parseAnswerString(possibleAnswersRaw[0]);
-        const bgColor = isQuestionPassed ? "#f0fff4" : "#fff5f5"; // Yeşilimsi veya Kırmızımsı arka plan
-        const icon = isQuestionPassed ? "✅ PASSED" : "❌ FAILED";
-        const iconColor = isQuestionPassed ? "green" : "red";
+        let feedbackHTML = "";
+        if (!isQuestionPassed) {
+            const primeCorrect = parseAnswerString(possibleAnswersRaw[0]);
+            feedbackHTML = `<div style="font-size:10px; color:#555; margin-top:4px; padding-left:10px; border-left: 2px solid #ccc;">`;
+            
+            if (userAdText !== primeCorrect.text) {
+                 feedbackHTML += `<div><strong>Text:</strong> <span style="color:red; text-decoration:line-through;">${userAdText || "(Empty)"}</span> <br> <span style="color:green">Expected: ${primeCorrect.text}</span></div>`;
+            } else {
+                 feedbackHTML += `<div><strong>Text:</strong> <span style="color:green">✅ Correct</span></div>`;
+            }
+
+            const cleanUserCat = userCatText.replace(/[()]/g, '').toLowerCase().trim();
+            const cleanPrimeCat = primeCorrect.cat.toLowerCase().trim();
+            let catStatus = false;
+            if (cleanUserCat === cleanPrimeCat) catStatus = true;
+            if (primeCorrect.text.startsWith("Rejected") && cleanUserCat === "") catStatus = true;
+
+            if (!catStatus) {
+                feedbackHTML += `<div style="margin-top:2px;"><strong>Cat:</strong> <span style="color:red; text-decoration:line-through;">${userCatText || "(Empty)"}</span> -> <span style="color:green">${primeCorrect.cat}</span></div>`;
+            } else {
+                feedbackHTML += `<div><strong>Cat:</strong> <span style="color:green">✅ Correct</span></div>`;
+            }
+            feedbackHTML += `</div>`;
+        }
 
         resultListHTML += `
-        <div style="margin-bottom:8px; border:1px solid #ccc; padding:8px; background-color:${bgColor}; border-radius:4px;">
-            <div style="font-weight:bold; font-size:11px; color:${iconColor}; border-bottom:1px dashed #ccc; padding-bottom:2px; margin-bottom:4px;">
-                Q${i+1}: ${icon}
-            </div>
-            
-            <div style="font-size:10px; color:#333;">
-                <strong>Input:</strong> "${userAdText || "(Empty)"}" <br>
-                <strong>Cat:</strong> "${userCatText || "(Empty)"}"
-            </div>
-            
-            ${!isQuestionPassed ? `
-            <div style="font-size:10px; color:#006400; margin-top:4px; border-top:1px dashed #ccc; padding-top:2px;">
-                <strong>Expected:</strong> "${primeCorrect.text}" <br>
-                <strong>Cat:</strong> "${primeCorrect.cat}"
-            </div>` : ''}
+        <div style="margin-bottom:8px; border-bottom:1px solid #ddd; padding-bottom:5px;">
+            <div style="font-weight:bold; font-size:11px;">Q${i+1}: ${isQuestionPassed ? '<span style="color:green">✅ PASSED</span>' : '<span style="color:red">❌ FAILED</span>'}</div>
+            ${feedbackHTML}
         </div>`;
     });
 
@@ -219,7 +248,8 @@ function finishExam() {
         resultMessage = `
         <h3 style="color:green; margin-top:10px; border-bottom: 2px solid green; display:inline-block;">Result : ${correctCount}/7 (Passed)</h3>
         <p style="font-size:11px;"><strong>${examData.title} ${examData.candidate}</strong><br>
-        Congratulations, you have passed the test!</p>
+        Congratulations, you have passed the test with ${correctCount}/7 correct answers!<br> 
+        Welcome to LifeInvader.</p>
         <p style="font-size:11px; margin-bottom:5px;">Please watch the training videos:</p>
         <ul style="font-size:11px; margin-top:0;">
             <li><a href="https://youtu.be/-Urb1XQpYJI" style="color:blue;">Emails training</a></li>
@@ -231,8 +261,9 @@ function finishExam() {
         resultMessage = `
         <h3 style="color:red; margin-top:10px; border-bottom: 2px solid red; display:inline-block;">Result : ${correctCount}/7 (Fail)</h3>
         <p style="font-size:11px;"><strong>${examData.title} ${examData.candidate}</strong><br>
-        Sorry, you failed.</p>
-        <p style="font-size:11px;">Retest available after: <strong>${failMsgDate}</strong></p>`;
+        Sorry to tell you, but you've failed the test with ${correctCount}/7 Correct Answers.</p>
+        <p style="font-size:11px;">You are eligible to take retest after 4 hours on: <br>
+        <strong>${failMsgDate} (City Time)</strong></p>`;
     }
 
     const reportHTML = `
@@ -246,14 +277,11 @@ function finishExam() {
             <tr><td><strong>Admin:</strong> ${examData.admin}</td><td style="text-align:right;">${examDateStr}</td></tr>
             <tr><td><strong>Candidate:</strong> ${examData.title} ${examData.candidate}</td><td style="text-align:right; font-weight:bold; color:${statusColor}">${statusText}</td></tr>
         </table>
-        
-        <div style="background-color:#ffffff; padding:5px; border-radius:5px; margin-bottom:15px;">
-            <h4 style="margin-top:0; margin-bottom:10px; border-bottom:2px solid #333;">Detailed Answers:</h4>
+        <div style="background-color:#f9f9f9; padding:15px; border-radius:5px; border:1px solid #eee; margin-bottom:15px;">
+            <h4 style="margin-top:0; margin-bottom:10px; border-bottom:1px solid #ccc;">Answers Check:</h4>
             ${resultListHTML}
         </div>
-        
         ${resultMessage}
-        
         <div style="margin-top:30px; text-align:center; font-size:9px; color:gray;">
             <hr>OFFICIAL LIFEINVADER DOCUMENT
         </div>
