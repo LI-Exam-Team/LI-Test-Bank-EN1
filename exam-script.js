@@ -23,17 +23,16 @@ window.onload = function() {
         if (diffMinutes > 30) { disableStart("⚠️ This link has expired!"); return; }
 
         const introHTML = `
-        <div style="text-align: left; color: #e9ecef; font-size: 14px; line-height: 1.4;">
-            <p>Hello <strong>${examData.title} ${examData.candidate}</strong>,</p>
-            <p>My Name Is <strong>${examData.admin}</strong> and I will give to you LifeInvader (<strong>Test 1</strong>).</p>
-            <ul style="padding-left: 20px; margin: 10px 0;">
-                <li>You will have <strong>15 minutes</strong> to edit 7 ADs.</li>
-                <li>You will need a minimum of <strong>5 correct answers to pass the test</strong>.</li>
-                <li>You can use the LifeInvader <strong>Internal Policy</strong> along with the <strong>Sellable vehicles</strong> list.</li>
-                <li>Some ADs may need <strong>Rejecting</strong> so keep an eye out for that.</li>
-                <li>You can copy and paste the numerical symbol here: <strong>№</strong> if you need.</li>
-                <li>At the end of each AD please mention the <strong>Category</strong> it goes under in brackets.</li>
-                <li>All the best! <img src="LI_TOP.png" style="height:18px; vertical-align:middle;"></li>
+        <div style="text-align: left; color: #e9ecef; font-size: 13px; line-height: 1.2;">
+            <p style="margin-bottom: 8px;">Hello <strong>${examData.title} ${examData.candidate}</strong>,</p>
+            <p style="margin-bottom: 8px;">My Name Is <strong>${examData.admin}</strong> and I will give to you LifeInvader (<strong>Test 1</strong>).</p>
+            <ul style="padding-left: 15px; margin: 0;">
+                <li style="margin-bottom: 3px;">You will have <strong>15 minutes</strong> to edit 7 ADs.</li>
+                <li style="margin-bottom: 3px;">You will need a minimum of <strong>5 correct answers to pass the test</strong>.</li>
+                <li style="margin-bottom: 3px;">Strict grading: Punctuation and casing must be exact!</li>
+                <li style="margin-bottom: 3px;">Enter the <strong>Ad Text</strong> in the large box and the <strong>Category</strong> in the small box.</li>
+                <li style="margin-bottom: 3px;">You can copy and paste the numerical symbol here: <strong>№</strong> if you need.</li>
+                <li style="margin-bottom: 0;">All the best! <img src="LI_TOP.png" style="height:14px; vertical-align:middle;"></li>
             </ul>
         </div>`;
         document.getElementById('intro-text').innerHTML = introHTML;
@@ -69,13 +68,22 @@ function loadQuestions() {
             allQuestionsData = data; 
             const container = document.getElementById('questions-area');
             let htmlContent = "";
+            
             examData.indices.forEach((qIndex, i) => {
                 if (data[qIndex]) {
                     htmlContent += `
                     <div class="question-block">
                         <label class="fw-bold text-warning mb-2">Question ${i+1}:</label>
-                        <p class="text-white mb-2">${data[qIndex].q}</p>
-                        <textarea id="answer-${i}" class="form-control answer-input" rows="2" placeholder="Type your corrected ad here..."></textarea>
+                        <p class="text-white mb-2" style="font-family:'Courier New';">${data[qIndex].q}</p>
+                        
+                        <div class="row g-2">
+                            <div class="col-md-8">
+                                <textarea id="answer-text-${i}" class="form-control answer-input" rows="2" placeholder="Corrected Ad Text (Exact match required)"></textarea>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" id="answer-cat-${i}" class="form-control cat-input" placeholder="Category (e.g. Auto)">
+                            </div>
+                        </div>
                     </div>`;
                 }
             });
@@ -97,15 +105,7 @@ function updateTimer() {
     }
 }
 
-// --- AKILLI PUANLAMA FONKSİYONU ---
-// Yazıları sadeleştirir: "Hello World!" -> "helloworld"
-function normalizeString(str) {
-    if(!str) return "";
-    return str.toLowerCase()
-        .replace(/[^a-z0-9]/g, "") // Sadece harf ve rakamları tut (nokta, virgül, parantez sil)
-        .trim();
-}
-
+// --- AYRIŞTIRILMIŞ PUANLAMA MOTORU ---
 function finishExam() {
     clearInterval(timerInterval);
     
@@ -113,35 +113,65 @@ function finishExam() {
     let resultListHTML = "";
     
     examData.indices.forEach((qIndex, i) => {
-        const userAnswerRaw = document.getElementById(`answer-${i}`).value;
-        const correctAnswerRaw = allQuestionsData[qIndex].a;
+        // Kullanıcının Cevapları
+        const userAdText = document.getElementById(`answer-text-${i}`).value.trim();
+        const userCatText = document.getElementById(`answer-cat-${i}`).value.trim();
         
-        // Sadeleştirilmiş (Normalize) hallerini karşılaştır
-        const userClean = normalizeString(userAnswerRaw);
-        const correctClean = normalizeString(correctAnswerRaw);
+        // Veritabanındaki "Cevap (Kategori)" yapısını parçalayalım
+        const fullCorrectAnswer = allQuestionsData[qIndex].a.trim();
         
-        // Mantık: Eğer doğru cevap kullanıcının yazdığını içeriyorsa VEYA tam tersi
-        // Bu sayede "(5 days)" eksik olsa bile kabul eder.
-        let isCorrect = false;
+        // Son parantezi bulup ayıralım
+        const lastParenIndex = fullCorrectAnswer.lastIndexOf('(');
         
-        if (userClean === correctClean) {
-            isCorrect = true;
-        } else if (correctClean.includes(userClean) && userClean.length > 5) {
-            // Kullanıcı eksik yazdı ama yazdığı kısım doğru (örn: Rejected yazdı ama reason yazmadı)
-            // Çok kısa cevapları (örn: "a") doğru saymamak için uzunluk kontrolü
-            isCorrect = true;
-        } else if (userClean.includes(correctClean)) {
-            // Kullanıcı fazla detay yazdı
-            isCorrect = true;
+        let correctAdText = "";
+        let correctCatText = "";
+
+        if (lastParenIndex > -1) {
+            correctAdText = fullCorrectAnswer.substring(0, lastParenIndex).trim();
+            correctCatText = fullCorrectAnswer.substring(lastParenIndex).replace(/[()]/g, '').trim();
+        } else {
+            // Eğer veritabanında kategori parantez içinde değilse (Nadir durum)
+            correctAdText = fullCorrectAnswer;
+            correctCatText = ""; 
         }
+
+        // --- PUANLAMA ---
+        // 1. Reklam Metni Kontrolü (ÇOK KATI - Birebir Eşleşme)
+        const isAdCorrect = userAdText === correctAdText;
+
+        // 2. Kategori Kontrolü (ESNEK - Parantez sil, küçük harf yap)
+        const cleanUserCat = userCatText.replace(/[()]/g, '').toLowerCase().trim();
+        const cleanCorrectCat = correctCatText.toLowerCase().trim();
+        const isCatCorrect = cleanUserCat === cleanCorrectCat;
+
+        // İkisi de doğruysa puan ver
+        const isTotalCorrect = isAdCorrect && isCatCorrect;
         
-        if (isCorrect) correctCount++;
+        if (isTotalCorrect) correctCount++;
         
+        // PDF Detayları
+        let feedbackHTML = "";
+        if (!isTotalCorrect) {
+            feedbackHTML = `<div style="font-size:9px; color:#555; margin-top:2px;">`;
+            
+            if (!isAdCorrect) {
+                feedbackHTML += `<div><strong>Ad Text:</strong> <span style="color:red">${userAdText || "EMPTY"}</span> <br> <span style="color:green">Expected: ${correctAdText}</span></div>`;
+            } else {
+                feedbackHTML += `<div><strong>Ad Text:</strong> <span style="color:green">✅ Correct</span></div>`;
+            }
+
+            if (!isCatCorrect) {
+                feedbackHTML += `<div style="margin-top:2px;"><strong>Cat:</strong> <span style="color:red">${userCatText || "EMPTY"}</span> -> <span style="color:green">${correctCatText}</span></div>`;
+            } else {
+                feedbackHTML += `<div><strong>Cat:</strong> <span style="color:green">✅ Correct</span></div>`;
+            }
+            feedbackHTML += `</div>`;
+        }
+
         resultListHTML += `
-        <div style="margin-bottom:15px; border-bottom:1px solid #ccc; padding-bottom:5px;">
-            <div style="margin-bottom:5px;"><strong>Q${i+1}:</strong> ${isCorrect ? '<span style="color:green">✅ Correct</span>' : '<span style="color:red">❌ Wrong</span>'}</div>
-            <div style="font-size:12px; color:#333;"><i>Your Answer:</i> ${userAnswerRaw || "(Empty)"}</div>
-            ${!isCorrect ? `<div style="font-size:12px; color:#006400;"><i>Expected:</i> ${correctAnswerRaw}</div>` : ''}
+        <div style="margin-bottom:6px; border-bottom:1px solid #ccc; padding-bottom:4px;">
+            <div style="font-weight:bold; font-size:11px;">Q${i+1}: ${isTotalCorrect ? '<span style="color:green">✅ PASSED</span>' : '<span style="color:red">❌ FAILED</span>'}</div>
+            ${feedbackHTML}
         </div>`;
     });
 
@@ -155,84 +185,66 @@ function finishExam() {
 
     if (isPassed) {
         resultMessage = `
-        <h2 style="color:green; margin-top:20px; border-bottom: 2px solid green;">Result : ${correctCount}/7 (Passed)</h2>
-        <p><strong>${examData.title} ${examData.candidate}</strong><br>
-        Congratulations, you have passed the test with ${correctCount}/7 correct answers!<br> 
-        Welcome to LifeInvader.</p>
-        <p>Please watch the training videos:</p>
-        <ul>
-            <li><a href="https://youtu.be/-Urb1XQpYJI" style="color:blue;">Emails training</a></li>
-            <li><a href="https://www.youtube.com/watch?v=4_VSZONyonI&ab_channel=Nor!" style="color:blue;">PDA training</a></li>
-        </ul>`;
+        <h3 style="color:green; margin-top:10px;">Result : ${correctCount}/7 (Passed)</h3>
+        <p style="font-size:11px;"><strong>${examData.title} ${examData.candidate}</strong><br>
+        Congratulations, you have passed the test!</p>`;
     } else {
         const retestTime = new Date(now.getTime() + 4*60*60*1000);
         const failMsgDate = retestTime.toLocaleString('en-GB', { timeZone: 'Europe/London' });
         resultMessage = `
-        <h2 style="color:red; margin-top:20px; border-bottom: 2px solid red;">Result : ${correctCount}/7 (Fail)</h2>
-        <p><strong>${examData.title} ${examData.candidate}</strong><br>
-        Sorry to tell you, but you've failed the test with ${correctCount}/7 Correct Answers.</p>
-        <p>You are eligible to take retest after 4 hours on: <br>
-        <strong>${failMsgDate} (City Time)</strong></p>`;
+        <h3 style="color:red; margin-top:10px;">Result : ${correctCount}/7 (Fail)</h3>
+        <p style="font-size:11px;"><strong>${examData.title} ${examData.candidate}</strong><br>
+        Sorry, you failed.</p>
+        <p style="font-size:11px;">Retest: <strong>${failMsgDate}</strong></p>`;
     }
 
-    // --- KESİN PDF ÇÖZÜMÜ: EKRANI DEĞİŞTİRME ---
-    // Mevcut sayfayı siliyoruz ve yerine raporu koyuyoruz.
-    // Bu sayede html2pdf %100 çalışıyor.
-    
-    const reportHTML = `
-    <div id="final-report" style="font-family: Arial, sans-serif; padding: 40px; background-color: #ffffff; color: #000000; max-width: 800px; margin: 0 auto;">
-        
-        <div style="text-align:center; margin-bottom:20px;">
-            <img src="https://li-exam-team.github.io/LI-Test-Bank-EN1/LILOGO.jpg" style="height: 80px; width: auto; display:block; margin: 0 auto;">
-            <h1 style="color: #d32f2f; margin: 10px 0;">LifeInvader Exam Result</h1>
-            <div style="border-bottom: 3px solid #d32f2f; width: 100%;"></div>
+    const pdfContent = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; background: white; color: black; width: 750px; margin: 0 auto;">
+        <div style="text-align:center; margin-bottom:10px;">
+            <img src="https://li-exam-team.github.io/LI-Test-Bank-EN1/LILOGO.jpg" style="height: 60px;">
+            <h2 style="color: #d32f2f; margin: 5px 0;">LifeInvader Exam Result</h2>
+            <hr style="margin: 5px 0;">
         </div>
-
-        <table style="width:100%; margin-bottom:20px; font-size:14px;">
-            <tr>
-                <td style="padding: 5px;"><strong>Admin:</strong> ${examData.admin}</td>
-                <td style="padding: 5px; text-align:right;"><strong>Date:</strong> ${examDateStr}</td>
-            </tr>
-            <tr>
-                <td style="padding: 5px;"><strong>Candidate:</strong> ${examData.title} ${examData.candidate}</td>
-                <td style="padding: 5px; text-align:right;"><strong>Status:</strong> <span style="color:${statusColor}; font-weight:bold;">${statusText}</span></td>
-            </tr>
+        <table style="width:100%; margin-bottom:10px; font-size:11px;">
+            <tr><td><strong>Admin:</strong> ${examData.admin}</td><td style="text-align:right;">${examDateStr}</td></tr>
+            <tr><td><strong>Candidate:</strong> ${examData.title} ${examData.candidate}</td><td style="text-align:right; font-weight:bold; color:${statusColor}">${statusText}</td></tr>
         </table>
-
-        <div style="background-color:#f8f9fa; padding:20px; border:1px solid #ccc; margin-bottom:20px;">
-            <h3 style="margin-top:0; border-bottom:1px solid #999; padding-bottom:5px;">Answers Check:</h3>
+        <div style="background-color:#f9f9f9; padding:10px; border:1px solid #eee; margin-bottom:10px;">
+            <h4 style="margin-top:0; margin-bottom:5px;">Detailed Analysis:</h4>
             ${resultListHTML}
         </div>
-
-        <div>
-            ${resultMessage}
-        </div>
-
-        <div style="margin-top:50px; text-align:center; font-size:10px; color: #666;">
-            <hr>
-            OFFICIAL LIFEINVADER DOCUMENT
-        </div>
+        ${resultMessage}
+        <div style="margin-top:20px; text-align:center; font-size:9px; color:gray;">OFFICIAL LIFEINVADER DOCUMENT</div>
     </div>
     `;
 
-    // 1. Ekrandaki her şeyi sil
-    document.body.innerHTML = reportHTML;
-    document.body.style.backgroundColor = "white"; // Arka planı beyaza çevir
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.zIndex = '99999';
+    overlay.style.backgroundColor = 'white';
+    overlay.innerHTML = pdfContent;
+    document.body.appendChild(overlay);
 
-    // 2. PDF İndir
-    const element = document.getElementById('final-report');
     var opt = {
-        margin:       10,
-        filename:     `Result_${examData.candidate.replace(/\s/g, '_')}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        margin: 5,
+        filename: `Result_${examData.candidate.replace(/\s/g, '_')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        enableLinks: true
     };
 
-    // PDF indikten sonra ekrana mesaj ekle
-    html2pdf().set(opt).from(element).save().then(() => {
-        const msg = document.createElement('div');
-        msg.innerHTML = `<h3 style="text-align:center; color:green; margin-top:20px;">PDF Downloaded Successfully!</h3>`;
-        document.body.appendChild(msg);
+    html2pdf().set(opt).from(overlay).save().then(() => {
+        document.body.removeChild(overlay);
+        document.getElementById('exam-container').innerHTML = `
+            <div class="text-center text-white mt-5">
+                <h1>Exam Completed</h1>
+                <h3 class="text-success">PDF Downloaded!</h3>
+            </div>
+        `;
     });
 }
