@@ -5,7 +5,7 @@ const GLOBAL_SITE_PASS = "Admin123"; // 1. Katman: Site Şifresi
 // "ID": { name: "İsim", pass: "ÖzelŞifre" }
 const authorizedUsers = {
     "9999":   { name: "Nazan Koc",         pass: "AdminNazan" },
-    "371687": { name: "Habib Targaryen",   pass: "Habib123" }, // Örnek: ID şifre değildir!
+    "371687": { name: "Habib Targaryen",   pass: "Habib123" },
     "1001":   { name: "Test User",         pass: "1234" }
 };
 // ------------------------
@@ -13,6 +13,7 @@ const authorizedUsers = {
 let currentQuestions = [];
 
 function checkLogin() {
+    // Inputlardan verileri alıyoruz
     const siteInput = document.getElementById('sitePassInput').value.trim();
     const idInput = document.getElementById('userIdInput').value.trim();
     const passInput = document.getElementById('userPassInput').value.trim();
@@ -56,18 +57,20 @@ function showError(message) {
     const errorMsg = document.getElementById('error-msg');
     errorMsg.innerText = message;
     errorMsg.style.display = 'block';
-    document.getElementById('login-screen').classList.add('shake');
-    setTimeout(() => document.getElementById('login-screen').classList.remove('shake'), 500);
+    
+    // Titreme efekti
+    const loginBox = document.getElementById('login-screen');
+    loginBox.classList.add('shake');
+    setTimeout(() => loginBox.classList.remove('shake'), 500);
 }
 
 function logout() {
-    location.reload(); // Sayfayı yenile (Çıkış yapmış olur)
+    location.reload(); 
 }
 
-// Enter tuşu desteği (Herhangi bir kutuda enter'a basarsa giriş yapar)
+// Enter tuşu desteği
 document.addEventListener("keypress", function(event) {
     if (event.key === "Enter") {
-        // Eğer login ekranı açıksa
         if (document.getElementById('login-screen').style.display !== 'none') {
             checkLogin();
         }
