@@ -20,6 +20,7 @@ function checkLogin() {
     const siteInput = document.getElementById('sitePassInput').value.trim();
     const idInput = document.getElementById('userIdInput').value.trim();
     const passInput = document.getElementById('userPassInput').value.trim();
+    
     const errorMsg = document.getElementById('error-msg');
     const welcomeMsg = document.getElementById('welcome-msg');
     const loginCard = document.querySelector('#login-screen .card'); 
@@ -115,26 +116,37 @@ function showCandidateButton() {
     qSection.insertBefore(btn, copyBtn);
 }
 
-// --- GÜNCELLENEN KISIM: İSİM + CİNSİYET SORAN SİSTEM ---
+// --- GÜNCELLENEN KISIM: PRATİK VERİ GİRİŞİ ---
 function generateCandidateLink() {
-    // 1. İsim İste
-    const candidateInput = prompt("Enter Candidate Name & ID:\n(Format: Name Surname | ID)");
-    if (!candidateInput) return;
+    
+    // 1. SORU: ADAYIN CİNSİYETİ
+    // (Bunu önce soralım ki iptal edilirse diğerleriyle uğraşmayalım)
+    const genderInput = prompt("1/3 - Enter Gender:\nType 'M' for Mr.\nType 'F' for Ms.");
+    if (!genderInput) return; // İptal edilirse dur
 
-    // 2. Cinsiyet İste
-    const genderInput = prompt("Enter Gender:\nType 'M' for Mr.\nType 'F' for Ms.");
     let title = "Mx.";
-    if (genderInput && genderInput.toUpperCase() === 'M') title = "Mr.";
-    if (genderInput && genderInput.toUpperCase() === 'F') title = "Ms.";
+    if (genderInput.toUpperCase() === 'M') title = "Mr.";
+    if (genderInput.toUpperCase() === 'F') title = "Ms.";
 
-    // 3. Veriyi Paketle
+    // 2. SORU: ADAYIN ADI
+    const nameInput = prompt("2/3 - Enter Candidate Name:\n(e.g. John Doe)");
+    if (!nameInput) return;
+
+    // 3. SORU: ADAYIN ID NUMARASI
+    const idInput = prompt("3/3 - Enter Candidate ID:\n(e.g. 12345)");
+    if (!idInput) return;
+
+    // OTOMATİK BİRLEŞTİRME: "Ad Soyad | ID" formatı
+    const fullCandidateString = `${nameInput} | ${idInput}`;
+
+    // Veriyi Paketle
     const payload = {
         cat: currentCategoryName.toLowerCase(),
         indices: selectedIndices,
         time: new Date().getTime(),
-        admin: currentAdminName,
-        candidate: candidateInput,
-        title: title // Mr. veya Ms.
+        admin: currentAdminName, // O an giriş yapan adminin adı otomatik alınır
+        candidate: fullCandidateString, // Birleştirilmiş isim ve ID
+        title: title
     };
 
     const jsonString = JSON.stringify(payload);
@@ -143,6 +155,6 @@ function generateCandidateLink() {
     const link = `${baseUrl}/exam.html?token=${token}`;
 
     navigator.clipboard.writeText(link).then(() => {
-        alert(`✅ LINK COPIED!\n\nCandidate: ${title} ${candidateInput}\n\nSend this link.`);
+        alert(`✅ LINK COPIED!\n\nCandidate: ${title} ${fullCandidateString}\nAdmin: ${currentAdminName}\n\nSend this link to the candidate.`);
     });
 }
