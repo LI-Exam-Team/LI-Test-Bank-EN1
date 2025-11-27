@@ -20,7 +20,6 @@ function checkLogin() {
     const siteInput = document.getElementById('sitePassInput').value.trim();
     const idInput = document.getElementById('userIdInput').value.trim();
     const passInput = document.getElementById('userPassInput').value.trim();
-    
     const errorMsg = document.getElementById('error-msg');
     const welcomeMsg = document.getElementById('welcome-msg');
     const loginCard = document.querySelector('#login-screen .card'); 
@@ -120,9 +119,8 @@ function showCandidateButton() {
 function generateCandidateLink() {
     
     // 1. SORU: ADAYIN CİNSİYETİ
-    // (Bunu önce soralım ki iptal edilirse diğerleriyle uğraşmayalım)
     const genderInput = prompt("1/3 - Enter Gender:\nType 'M' for Mr.\nType 'F' for Ms.");
-    if (!genderInput) return; // İptal edilirse dur
+    if (!genderInput) return;
 
     let title = "Mx.";
     if (genderInput.toUpperCase() === 'M') title = "Mr.";
@@ -136,7 +134,7 @@ function generateCandidateLink() {
     const idInput = prompt("3/3 - Enter Candidate ID:\n(e.g. 12345)");
     if (!idInput) return;
 
-    // OTOMATİK BİRLEŞTİRME: "Ad Soyad | ID" formatı
+    // OTOMATİK BİRLEŞTİRME: ARTIK "|" İŞARETİ VAR
     const fullCandidateString = `${nameInput} | ${idInput}`;
 
     // Veriyi Paketle
@@ -144,8 +142,8 @@ function generateCandidateLink() {
         cat: currentCategoryName.toLowerCase(),
         indices: selectedIndices,
         time: new Date().getTime(),
-        admin: currentAdminName, // O an giriş yapan adminin adı otomatik alınır
-        candidate: fullCandidateString, // Birleştirilmiş isim ve ID
+        admin: currentAdminName,
+        candidate: fullCandidateString,
         title: title
     };
 
