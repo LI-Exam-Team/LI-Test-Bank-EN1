@@ -37,12 +37,20 @@
                         
                         <p class="lead">Lütfen test oluşturmak istediğiniz kategoriyi seçin:</p>
                         
-                        <div class="d-grid gap-2 col-8 mx-auto mb-4">
-                            <button onclick="generateExam('easy')" class="btn btn-warning fw-bold btn-lg">
-                                ⚡ EASY (Kolay) Sınav Oluştur
+                        <div class="d-grid gap-3 col-8 mx-auto mb-4">
+                            <button onclick="generateExam('easy')" class="btn btn-success fw-bold btn-lg">
+                                🟢 EASY (Kolay)
                             </button>
-                            </div>
-
+                            <button onclick="generateExam('medium')" class="btn btn-warning fw-bold btn-lg">
+                                🟡 MEDIUM (Orta)
+                            </button>
+                            <button onclick="generateExam('hard')" class="btn btn-danger fw-bold btn-lg">
+                                🔴 HARD (Zor)
+                            </button>
+                            <button onclick="generateExam('very-hard')" class="btn btn-dark fw-bold btn-lg border-danger">
+                                ⚫ VERY HARD (Çok Zor)
+                            </button>
+                        </div>
                         <hr class="border-secondary">
 
                         <div id="questions-section" style="display: none;" class="text-start">
