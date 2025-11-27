@@ -11,71 +11,73 @@
         body { background-color: #212529; color: #e9ecef; }
         .card { background-color: #343a40; border: 1px solid #495057; }
         
-        #timer-box {
-            font-family: 'Courier New', monospace;
-            font-size: 24px;
-            font-weight: bold;
-            color: #ffc107;
-        }
+        #timer-box { font-family: 'Courier New', monospace; font-size: 24px; font-weight: bold; color: #ffc107; }
 
-        .question-box {
-            background-color: #e9ecef;
-            color: #212529;
-            border-radius: 5px;
+        .question-block {
+            background-color: #2c3035;
+            border-radius: 8px;
             padding: 20px;
-            font-family: 'Courier New', monospace;
-            font-size: 15px;
+            margin-bottom: 20px;
             border-left: 5px solid #0d6efd;
-            white-space: pre-wrap;
             text-align: left;
         }
-
-        #start-screen {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background-color: #212529;
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        
+        .answer-input {
+            background-color: #e9ecef;
+            color: #000;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            border: 2px solid #6c757d;
         }
+        .answer-input:focus { background-color: #fff; border-color: #0d6efd; box-shadow: none; }
+
+        #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #212529; z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        
+        /* Karşılama Metni Stili */
+        .welcome-text { font-size: 14px; color: #ced4da; text-align: left; background: #343a40; padding: 15px; border-radius: 5px; border: 1px solid #495057; white-space: pre-wrap; }
     </style>
 </head>
 <body>
 
     <div id="start-screen">
-        <div class="card shadow-lg p-5 text-center" style="max-width: 500px;">
-            <img src="LILOGO.jpg" alt="Logo" style="height: 80px; width: auto; margin: 0 auto 20px auto; border-radius: 10px;">
-            <h2 class="text-white">Advertising Exam</h2>
-            <p class="text-white-50">You have <span class="text-warning">15 Minutes</span> to complete this exam.</p>
+        <div class="card shadow-lg p-4 text-center" style="max-width: 600px; width: 95%;">
+            <img src="LILOGO.jpg" alt="Logo" style="height: 60px; width: auto; margin: 0 auto 15px auto; border-radius: 10px;">
+            <h3 class="text-white mb-3">LifeInvader Recruitment Exam</h3>
+            
+            <div id="intro-text" class="welcome-text mb-3">
+                Loading exam details...
+            </div>
+
             <p id="expiry-warning" class="text-danger fw-bold" style="display:none;">⚠️ This link has expired!</p>
-            <button id="btn-start" onclick="startExam()" class="btn btn-success btn-lg w-100 fw-bold mt-3">START EXAM</button>
+            <button id="btn-start" onclick="startExam()" class="btn btn-success w-100 fw-bold py-2">START EXAM NOW</button>
         </div>
     </div>
 
-    <div class="container mt-5" id="exam-container" style="display: none;">
+    <div class="container mt-4 mb-5" id="exam-container" style="display: none;">
         <div class="card shadow-lg">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center sticky-top">
                 <div class="d-flex align-items-center gap-2">
-                    <img src="LILOGO.jpg" style="height: 40px; border-radius: 5px;">
-                    <h4 class="m-0">Candidate Exam Paper</h4>
+                    <img src="LILOGO.jpg" style="height: 35px; border-radius: 5px;">
+                    <h5 class="m-0 d-none d-md-block">Advertising Exam</h5>
                 </div>
                 <div id="timer-box">15:00</div>
             </div>
             
-            <div class="card-body text-center">
-                <div id="questions-area" class="mb-4">
+            <div class="card-body">
+                <div id="questions-area">
                     </div>
 
-                <hr class="border-secondary">
+                <hr class="border-secondary my-4">
                 
                 <button onclick="finishExam()" class="btn btn-danger btn-lg w-100 fw-bold">
-                    🏁 FINISH & DOWNLOAD PDF
+                    🏁 SUBMIT ANSWERS
                 </button>
             </div>
         </div>
     </div>
+
+    <div id="result-template" style="display:none; color: black; background: white; padding: 20px; font-family: sans-serif;">
+        </div>
 
     <script src="exam-script.js"></script>
 </body>
