@@ -2,7 +2,6 @@
 const GLOBAL_SITE_PASS = "Admin123"; 
 
 // Kullanıcı Listesi
-// Format: "ID": { name: "İsim", pass: "Şifre" }
 const authorizedUsers = {
     "442277": { name: "Queen Targaryen",   pass: "Queen1661" },
     "371687": { name: "Habib Targaryen",   pass: "Habib123" },
@@ -35,23 +34,19 @@ function checkLogin() {
         }, 500);
     }
 
-    // 1. KONTROL: Site Şifresi
     if (siteInput !== GLOBAL_SITE_PASS) {
         triggerError("Global Site Access Code is wrong!");
         return;
     }
-    // 2. KONTROL: Kullanıcı ID
     if (!authorizedUsers[idInput]) {
         triggerError("User ID not found in database!");
         return;
     }
-    // 3. KONTROL: Kişisel Şifre
     if (authorizedUsers[idInput].pass !== passInput) {
         triggerError("Wrong personal password!");
         return;
     }
 
-    // --- GİRİŞ BAŞARILI ---
     const userName = authorizedUsers[idInput].name;
     currentUserInfo = `${userName} (ID: ${idInput})`;
     
@@ -70,6 +65,16 @@ function logout() {
     location.reload(); 
 }
 
+// ŞİFRE GÖSTER/GİZLE FONKSİYONU (YENİ)
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    if (input.type === "password") {
+        input.type = "text"; // Şifreyi göster
+    } else {
+        input.type = "password"; // Şifreyi gizle
+    }
+}
+
 document.addEventListener("keypress", function(event) {
     if (event.key === "Enter") {
         if (document.getElementById('login-screen').style.display !== 'none') {
@@ -86,14 +91,17 @@ function generateExam(categoryName) {
 
     fetch(fileName)
         .then(response => {
-            if (!response.ok) throw new Error("File not found");
+            if (!response.ok) throw new Error("File not found: " + fileName);
             return response.json();
         })
         .then(data => {
             const selectedQuestions = shuffleAndSelect(data, 7);
             displayExam(selectedQuestions);
         })
-        .catch(error => console.error(error));
+        .catch(error => {
+            console.error(error);
+            alert("Error loading questions.");
+        });
 }
 
 function shuffleAndSelect(array, count) {
