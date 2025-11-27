@@ -107,11 +107,19 @@ function updateTimer() {
     const timerBox = document.getElementById('timer-box');
     let m = Math.floor(timeLeft / 60);
     let s = timeLeft % 60;
+    
+    // Süre 1 dakikadan az kalınca rengi kırmızı yap (Görsel Uyarı)
+    if (timeLeft < 60) {
+        timerBox.style.color = "red";
+        timerBox.classList.add("shake"); // Son saniyelerde titret
+    }
+
     timerBox.innerText = `${m}:${s < 10 ? '0'+s : s}`;
+    
     if (timeLeft <= 0) {
         clearInterval(timerInterval);
-        alert("TIME IS UP! Submitting...");
-        finishExam();
+        // Alert'i kaldırdık! Artık sormadan bitiriyor.
+        finishExam(); 
     } else {
         timeLeft--;
     }
