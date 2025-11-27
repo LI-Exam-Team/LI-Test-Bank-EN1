@@ -4,7 +4,7 @@ let timerInterval;
 let timeLeft = 15 * 60; 
 let token = "";
 
-// UK SAATİ ALMA FONKSİYONU
+// UK SAATİ ALMA
 function getUKTime(dateObj = new Date()) {
     return dateObj.toLocaleString('en-GB', { timeZone: 'Europe/London' });
 }
@@ -33,11 +33,11 @@ window.onload = function() {
             return;
         }
 
-        // --- GİRİŞ METNİ GÜNCELLEMESİ (RESİMLİ) ---
-        const introHTML = `Hello Miss. or Mr. <strong>${examData.candidate}</strong>,<br>
+        // Giriş Metni (Resimli ve Formatlı)
+        const introHTML = `Hello <strong>${examData.title} ${examData.candidate}</strong>,<br>
 My Name Is <strong>${examData.admin}</strong> and I will give to you LifeInvader (<strong>Test 1</strong>).<br><br>
 
-<ul style="list-style-type: disc; padding-left: 20px;">
+<ul style="list-style-type: disc; padding-left: 20px; text-align:left;">
     <li>You will have <strong>15 minutes</strong> to edit 7 ADs.</li>
     <li>You will need a minimum of <strong>5 correct answers to pass the test</strong>.</li>
     <li>You can use the LifeInvader <strong>Internal Policy</strong> along with the <strong>Sellable vehicles - Clothing and items list</strong> to help you with the below.</li>
@@ -108,7 +108,7 @@ function updateTimer() {
     }
 }
 
-// --- DÜZELTİLEN PDF MOTORU (ARTIK BOŞ ÇIKMAYACAK) ---
+// --- FİNAL PDF MOTORU ---
 function finishExam() {
     clearInterval(timerInterval);
     
@@ -123,9 +123,10 @@ function finishExam() {
         if (isCorrect) correctCount++;
         
         resultListHTML += `
-        <div style="margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:5px;">
-            <strong style="color:#555;">Q${i+1}:</strong> ${isCorrect ? '✅' : '❌'} <br>
-            <span style="font-size:12px; color:#777;">Your Answer: ${userAnswer || "(Empty)"}</span>
+        <div style="margin-bottom:15px; border-bottom:1px solid #ccc; padding-bottom:5px;">
+            <div style="margin-bottom:5px;"><strong>Q${i+1}:</strong> ${isCorrect ? '<span style="color:green">✅ Correct</span>' : '<span style="color:red">❌ Wrong</span>'}</div>
+            <div style="font-size:12px; color:#555;"><i>Your Answer:</i> ${userAnswer || "(Empty)"}</div>
+            ${!isCorrect ? `<div style="font-size:12px; color:green;"><i>Correct:</i> ${correctAnswer}</div>` : ''}
         </div>`;
     });
 
@@ -133,12 +134,6 @@ function finishExam() {
     const now = new Date();
     const examDateStr = now.toLocaleString('en-GB', { timeZone: 'Europe/London' });
     
-    let failMsgDate = "";
-    if (!isPassed) {
-        const retestTime = new Date(now.getTime() + 4*60*60*1000);
-        failMsgDate = retestTime.toLocaleString('en-GB', { timeZone: 'Europe/London' });
-    }
-
     let resultMessage = "";
     let statusColor = isPassed ? "green" : "red";
     let statusText = isPassed ? "PASSED" : "FAIL";
@@ -147,15 +142,18 @@ function finishExam() {
         resultMessage = `
         <h2 style="color:green; margin-top:20px;">Result : ${correctCount}/7 (Passed)</h2>
         <p><strong>${examData.title} ${examData.candidate}</strong><br>
-        Congratulations🎉, you have passed the test with ${correctCount}/7 correct answers!<br> 
+        Congratulations, you have passed the test with ${correctCount}/7 correct answers!<br> 
         Welcome to LifeInvader.</p>
-        <p>Now, please watch the following videos to understand how to use the discord channels, their purpose, and how to use the PDA:</p>
+        <p>Please watch the training videos:</p>
         <ul>
-            <li><a href="https://youtu.be/-Urb1XQpYJI" target="_blank" style="color:blue; text-decoration:underline;">Emails training</a></li>
-            <li><a href="https://www.youtube.com/watch?v=4_VSZONyonI&ab_channel=Nor!" target="_blank" style="color:blue; text-decoration:underline;">PDA training</a></li>
-        </ul>
-        <p>Watch them carefully to get a better understanding of how things work. Only after watching these videos you will receive the appropriate rank to start working.</p>`;
+            <li><a href="https://youtu.be/-Urb1XQpYJI">Emails training</a></li>
+            <li><a href="https://www.youtube.com/watch?v=4_VSZONyonI&ab_channel=Nor!">PDA training</a></li>
+        </ul>`;
     } else {
+        // Fail Tarihi Hesapla
+        const retestTime = new Date(now.getTime() + 4*60*60*1000);
+        const failMsgDate = retestTime.toLocaleString('en-GB', { timeZone: 'Europe/London' });
+
         resultMessage = `
         <h2 style="color:red; margin-top:20px;">Result : ${correctCount}/7 (Fail)</h2>
         <p><strong>${examData.title} ${examData.candidate}</strong><br>
@@ -164,76 +162,55 @@ function finishExam() {
         <strong style="font-size:16px;">${failMsgDate} (City Time)</strong></p>`;
     }
 
-    // PDF İÇERİĞİ
+    // PDF İçeriği
     const pdfContent = `
-    <div style="font-family: Arial, sans-serif; padding: 40px; color: black; background: white; width: 100%;">
-        
-        <div style="text-align:center; margin-bottom:30px;">
-            <img src="https://li-exam-team.github.io/LI-Test-Bank-EN1/LILOGO.jpg" style="height: 80px; width: auto;">
-            <h1 style="color: #d32f2f; margin: 10px 0;">LifeInvader Exam Result</h1>
-            <div style="border-bottom: 2px solid #d32f2f; width: 100%;"></div>
-        </div>
-
-        <table style="width:100%; margin-bottom:20px; font-size:14px;">
-            <tr>
-                <td><strong>Admin:</strong> ${examData.admin}</td>
-                <td style="text-align:right;"><strong>Date:</strong> ${examDateStr}</td>
-            </tr>
-            <tr>
-                <td><strong>Candidate:</strong> ${examData.title} ${examData.candidate}</td>
-                <td style="text-align:right;"><strong>Status:</strong> <span style="color:${statusColor}; font-weight:bold;">${statusText}</span></td>
-            </tr>
-        </table>
-
-        <div style="background-color:#f9f9f9; padding:15px; border-radius:5px; margin-bottom:20px;">
-            <h3 style="margin-top:0;">Answers Check:</h3>
-            ${resultListHTML}
-        </div>
-
-        ${resultMessage}
-
-        <div style="margin-top:50px; text-align:center; font-size:12px; color:gray;">
+    <div style="font-family: Arial, sans-serif; padding: 30px; background: white; color: black; border: 5px solid #333;">
+        <div style="text-align:center; margin-bottom:20px;">
+            <img src="https://li-exam-team.github.io/LI-Test-Bank-EN1/LILOGO.jpg" style="height: 80px;">
+            <h1 style="color: #d32f2f;">LifeInvader Exam Result</h1>
             <hr>
-            OFFICIAL LIFEINVADER DOCUMENT
         </div>
+        <table style="width:100%; margin-bottom:20px;">
+            <tr><td><strong>Admin:</strong> ${examData.admin}</td><td style="text-align:right;">${examDateStr}</td></tr>
+            <tr><td><strong>Candidate:</strong> ${examData.title} ${examData.candidate}</td><td style="text-align:right; font-weight:bold; color:${statusColor}">${statusText}</td></tr>
+        </table>
+        <h3>Answers Check:</h3>
+        ${resultListHTML}
+        <hr>
+        ${resultMessage}
+        <div style="margin-top:30px; text-align:center; font-size:12px; color:gray;">OFFICIAL LIFEINVADER DOCUMENT</div>
     </div>
     `;
 
-    // --- KRİTİK DÜZELTME: GEÇİCİ ELEMENT OLUŞTURMA ---
-    // PDF'i ekranda görünmeyen bir elementten değil,
-    // anlık oluşturulan bir kapsayıcıdan çekeceğiz.
-    
-    // 1. Geçici bir div oluştur
-    const tempContainer = document.createElement('div');
-    tempContainer.innerHTML = pdfContent;
-    
-    // 2. Bu divi sayfanın dışına yerleştir (Görünmez ama render edilebilir)
-    tempContainer.style.position = 'absolute';
-    tempContainer.style.left = '-9999px';
-    tempContainer.style.top = '0';
-    tempContainer.style.width = '800px'; // A4 genişliği için
-    document.body.appendChild(tempContainer);
+    // --- YENİ YÖNTEM: Ekrana Basıp Çekme ---
+    const overlay = document.createElement('div');
+    overlay.id = 'pdf-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.zIndex = '10000';
+    overlay.style.background = 'white';
+    overlay.style.overflowY = 'scroll';
+    overlay.innerHTML = pdfContent;
+    document.body.appendChild(overlay);
 
     var opt = {
         margin:       10,
         filename:     `Result_${examData.candidate.replace(/\s/g, '_')}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true }, // useCORS resimlerin yüklenmesi için önemli
+        html2canvas:  { scale: 2, useCORS: true },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    // 3. PDF'i oluştur ve sonra geçici divi sil
-    html2pdf().set(opt).from(tempContainer).save().then(() => {
-        document.body.removeChild(tempContainer); // Temizlik
-        
+    // PDF'i oluştur, kaydet ve sonra overlay'i kaldır
+    html2pdf().set(opt).from(overlay).save().then(() => {
+        document.body.removeChild(overlay);
         document.getElementById('exam-container').innerHTML = `
             <div class="text-center text-white mt-5">
-                <img src="LILOGO.jpg" style="height: 100px; border-radius: 10px; margin-bottom: 20px;">
                 <h1>Exam Completed</h1>
-                <h3 class="text-success">PDF Downloaded Successfully!</h3>
-                <p>Please check your downloads folder.</p>
-                <p class="text-danger small mt-4">Note: This link is now invalid.</p>
-            </div>
-        `;
+                <h3 class="text-success">PDF Downloaded!</h3>
+            </div>`;
     });
 }
