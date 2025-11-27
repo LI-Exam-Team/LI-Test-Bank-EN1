@@ -3,7 +3,7 @@ const GLOBAL_SITE_PASS = "Admin123";
 
 // Kullanıcı Listesi
 const authorizedUsers = {
-    "9999":   { name: "Nazan Koc",         pass: "AdminNazan" },
+    "442277":   { name: "Queen Targaryen", pass: "Queen1661" },
     "371687": { name: "Habib Targaryen",   pass: "Habib123" },
     "1001":   { name: "Test User",         pass: "1234" }
 };
