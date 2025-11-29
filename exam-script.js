@@ -1,5 +1,5 @@
 // ================================================================
-// LIFEINVADER EXAM SYSTEM - FINAL VERSION (AUDIT LOG + LOGIC FIX)
+// LIFEINVADER EXAM SYSTEM - FINAL VERSION (LOGIC FIX + AUDIT LOG)
 // ================================================================
 
 let examData = null;
@@ -8,6 +8,7 @@ let timerInterval;
 let timeLeft = 15 * 60; 
 let token = "";
 
+// İngiltere saatini alma fonksiyonu
 function getUKTime(dateObj = new Date()) {
     return dateObj.toLocaleString('en-GB', { timeZone: 'Europe/London' });
 }
@@ -128,7 +129,9 @@ function updateTimer() {
     }
 }
 
-// --- YARDIMCI FONKSİYONLAR ---
+// --- YARDIMCI VE MANTIK FONKSİYONLARI ---
+
+// 1. Cevap Ayrıştırma (Eski fonksiyon korundu)
 function parseAnswerString(fullStr) {
     const lastParen = fullStr.lastIndexOf('(');
     if (lastParen > -1) {
@@ -140,7 +143,52 @@ function parseAnswerString(fullStr) {
     return { text: fullStr.trim(), cat: "" };
 }
 
-// --- FİNAL PUANLAMA VE RAPORLAMA MOTORU (FİNAL VERSİYON) ---
+// 2. Kategori Temizleyici (YENİ - Tolerans için)
+function cleanCategory(str) {
+    if (!str) return "";
+    // Parantezleri kaldır, harf olmayan her şeyi sil, küçük harfe çevir
+    return str.replace(/[()]/g, '').replace(/[^a-zA-Z]/g, '').toLowerCase();
+}
+
+// 3. Gelişmiş Rejected Kontrolü (YENİ - Akıllı Eşleşme)
+function checkRejectionMatch(userAnswer, correctAnswer) {
+    let u = userAnswer.toLowerCase().trim();
+    let c = correctAnswer.toLowerCase().trim();
+
+    if (!c.startsWith("reject")) return false;
+
+    // KURAL A: Blacklist Kontrolü
+    const requiresBlacklist = c.includes("blacklist");
+    const userHasBlacklist = u.includes("blacklist");
+    
+    // Eğer cevap Blacklist gerektiriyor ama kullanıcı yazmadıysa -> YANLIŞ
+    if (requiresBlacklist && !userHasBlacklist) return false; 
+
+    // KURAL B: Temizlik (Niyet Okuma)
+    // Bağlaçları (reason, and, +, -) atıp sadece anahtar kelimeleri karşılaştır
+    function stripJunk(text) {
+        return text
+            .replace(/rejected|reject/g, "")       // Reject kelimesini at
+            .replace(/blacklisted|blacklist/g, "") // Blacklist kelimesini at
+            .replace(/reason/g, "")                // Reason kelimesini at
+            .replace(/[:+\-&]/g, "")               // Sembolleri at (+ - : &)
+            .replace(/\band\b/g, "")               // "and" bağlacını at
+            .replace(/\s+/g, " ")                  // Boşlukları temizle
+            .trim();
+    }
+
+    const uClean = stripJunk(u);
+    const cClean = stripJunk(c);
+
+    // İNİSİYATİF: Kullanıcı sadece "Rejected" yazıp bıraktıysa ve sebep belirtmediyse
+    // (Bazen sadece reddetmek yeterli olabilir, bu durumu kabul ediyoruz)
+    if (uClean === "" || uClean.length < 3) return true; 
+
+    // Sebep yazıldıysa, sebebin doğru cevapla eşleşmesi gerekir (admin/admins gibi basit farklar hariç birebir bakar)
+    return uClean === cClean;
+}
+
+// --- FİNAL PUANLAMA MOTORU (GÜNCELLENMİŞ) ---
 function finishExam() {
     clearInterval(timerInterval);
     document.getElementById('exam-container').style.display = 'none';
@@ -148,73 +196,56 @@ function finishExam() {
     let correctCount = 0;
     let resultListHTML = "";
     
-    // YARDIMCI: Metni kemiklerine kadar temizler (Rejected, Reason ve sembolleri atar)
-    function stripRejectionLogic(str) {
+    // Raporlama için basit temizleyici
+    function stripRejectionLogicForReport(str) {
         if (!str) return "";
-        return str.toLowerCase()
-            .replace("rejected", "")
-            .replace("reason", "")
-            .replace(/[+\-:&]/g, "") // Tire, artı, iki nokta, ve işaretini sil
-            .replace(/\s/g, "")      // Tüm boşlukları sil
-            .trim();
+        return str.toLowerCase().replace(/rejected|reason|[+\-:&]|\s/g, "").trim();
     }
 
     examData.indices.forEach((qIndex, i) => {
         const userAdText = document.getElementById(`answer-text-${i}`).value.trim();
         const userCatText = document.getElementById(`answer-cat-${i}`).value.trim();
-        const originalQuestionText = allQuestionsData[qIndex].q;
-        const possibleAnswersRaw = allQuestionsData[qIndex].a.split(" or ");
+        const questionItem = allQuestionsData[qIndex];
+        const possibleAnswersRaw = questionItem.a.split(" or ");
         
         let isQuestionPassed = false;
         let finalCorrectObj = null; 
 
         // --- CEVAP KONTROL DÖNGÜSÜ ---
+        // Bir sorunun birden fazla doğru cevabı ("or" ile ayrılmış) olabilir, hepsini dene
         for (let rawOption of possibleAnswersRaw) {
             const correctObj = parseAnswerString(rawOption);
             finalCorrectObj = correctObj; 
 
             let isTextMatch = false;
+            let isCatMatch = false;
 
-            // 1. "Rejected" Soruları İçin Özel Zeka
-            if (correctObj.text.startsWith("Rejected")) {
-                
-                // A) Blacklist Regex Kontrolü (Kısa cevaplar için: "Rejected Blacklist")
-                const blacklistPattern = /^Rejected[\s\+\-\&]*(and)?[\s]*Blacklist(ed)?/i;
-                if (blacklistPattern.test(userAdText)) {
+            // ADIM 1: METİN KONTROLÜ
+            if (correctObj.text.toLowerCase().startsWith("reject")) {
+                // REJECTED İSE: Esnek Kontrol Fonksiyonunu Çağır
+                if (checkRejectionMatch(userAdText, correctObj.text)) {
                     isTextMatch = true;
                 }
-                
-                // B) Normalizasyon Kontrolü (Uzun sebepler için: "Reason: Cannot look for gods")
-                // Tireyi, iki noktayı vs. silip karşılaştırır.
-                else {
-                    const cleanUser = stripRejectionLogic(userAdText);
-                    const cleanCorrect = stripRejectionLogic(correctObj.text);
-                    if (cleanUser === cleanCorrect && cleanUser.length > 0) {
-                        isTextMatch = true;
-                    }
-                }
-            } 
-            // 2. Normal İlan (Strict Mode - Noktasına kadar aynı olmalı)
-            else {
+            } else {
+                // NORMAL İLAN İSE: Katı Kontrol (Birebir Eşleşme)
                 if (userAdText === correctObj.text) {
                     isTextMatch = true;
                 }
             }
 
-            // 3. Kategori Kontrolü
-            let isCatMatch = false;
-            const cleanUserCat = userCatText.replace(/[()]/g, '').toLowerCase().trim();
-            const cleanCorrectCat = correctObj.cat.toLowerCase().trim();
+            // ADIM 2: KATEGORİ KONTROLÜ
+            const uCat = cleanCategory(userCatText);
+            const cCat = cleanCategory(correctObj.cat);
 
-            if (cleanUserCat === cleanCorrectCat) {
+            if (uCat === cCat) {
                 isCatMatch = true;
-            } else if (correctObj.text.startsWith("Rejected")) {
-                // Rejected sorularında kategori boş bırakılabilir veya doğru yazılabilir
-                if (cleanUserCat === "" || cleanUserCat === cleanCorrectCat) {
-                    isCatMatch = true;
-                }
+            } 
+            // Rejected cevaplarda kategori bazen boş bırakılabilir, buna izin ver
+            else if (correctObj.text.toLowerCase().startsWith("reject") && (uCat === "" || uCat === "rejected")) {
+                isCatMatch = true;
             }
 
+            // İkisi de doğruysa döngüyü kır ve puanı ver
             if (isTextMatch && isCatMatch) {
                 isQuestionPassed = true;
                 break; 
@@ -223,22 +254,15 @@ function finishExam() {
 
         if (isQuestionPassed) correctCount++;
         
-        // --- HTML RAPORLAMA ---
+        // --- HTML RAPORLAMA KISMI ---
         
-        // 1. Metin Görünümü Hazırla
+        // 1. Metin Görünümü (Görsel Renklendirme)
         let adTextDisplay = "";
-        
-        // Kullanıcı cevabının doğru olup olmadığını tekrar kontrol et (Görsel renklendirme için)
         let isTextVisualCorrect = false;
-        
-        if (finalCorrectObj.text.startsWith("Rejected")) {
-             const blPattern = /^Rejected[\s\+\-\&]*(and)?[\s]*Blacklist(ed)?/i;
-             const cUser = stripRejectionLogic(userAdText);
-             const cCorrect = stripRejectionLogic(finalCorrectObj.text);
-             
-             if (blPattern.test(userAdText) || (cUser === cCorrect && cUser.length > 0)) {
-                 isTextVisualCorrect = true;
-             }
+
+        // Rapor ekranında yeşil yakmak için tekrar kontrol ediyoruz
+        if (finalCorrectObj.text.toLowerCase().startsWith("reject")) {
+             if (checkRejectionMatch(userAdText, finalCorrectObj.text)) isTextVisualCorrect = true;
         } else {
             if (userAdText === finalCorrectObj.text) isTextVisualCorrect = true;
         }
@@ -249,12 +273,15 @@ function finishExam() {
             adTextDisplay = `<span style="color:red; text-decoration:line-through;">${userAdText || "(Empty)"}</span> <br><span style="color:green; font-size:10px;">Expected: ${finalCorrectObj.text}</span>`;
         }
 
-        // 2. Kategori Görünümü Hazırla
+        // 2. Kategori Görünümü (Görsel Renklendirme)
         let catDisplay = "";
-        const cleanUserCat = userCatText.replace(/[()]/g, '').toLowerCase().trim();
-        const cleanCorrectCat = finalCorrectObj.cat.toLowerCase().trim();
-        let isCatCorrect = (cleanUserCat === cleanCorrectCat);
-        if (finalCorrectObj.text.startsWith("Rejected") && cleanUserCat === "") isCatCorrect = true;
+        const uCatVisual = cleanCategory(userCatText);
+        const cCatVisual = cleanCategory(finalCorrectObj.cat);
+        let isCatCorrect = (uCatVisual === cCatVisual);
+        
+        if (finalCorrectObj.text.toLowerCase().startsWith("reject") && (uCatVisual === "" || uCatVisual === "rejected")) {
+            isCatCorrect = true;
+        }
 
         if (isCatCorrect) {
             catDisplay = `<span style="color:green; font-weight:bold;">${userCatText || "(Correct)"}</span>`;
@@ -274,6 +301,7 @@ function finishExam() {
         </div>`;
     });
 
+    // --- SONUÇ HESAPLAMA VE PDF ÇIKTISI ---
     const isPassed = correctCount >= 5;
     const now = new Date();
     const examDateStr = now.toLocaleString('en-GB', { timeZone: 'Europe/London' });
