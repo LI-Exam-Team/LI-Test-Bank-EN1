@@ -1,5 +1,5 @@
 // ================================================================
-// LIFEINVADER EXAM SYSTEM - FINAL VERSION (NUCLEAR LOGIC FIX)
+// LIFEINVADER EXAM SYSTEM - FINAL VERSION (NUCLEAR LOGIC FIX + NEW PDF)
 // ================================================================
 
 let examData = null;
@@ -197,7 +197,7 @@ function checkRejectionMatch(userAnswer, correctAnswer) {
     return uClean === cClean;
 }
 
-// --- FİNAL PUANLAMA MOTORU (GÜNCELLENMİŞ) ---
+// --- FİNAL PUANLAMA MOTORU (GÜNCELLENMİŞ PDF ÇIKTISI) ---
 function finishExam() {
     clearInterval(timerInterval);
     document.getElementById('exam-container').style.display = 'none';
@@ -224,12 +224,10 @@ function finishExam() {
 
             // ADIM 1: METİN KONTROLÜ
             if (correctObj.text.toLowerCase().startsWith("reject")) {
-                // REJECTED İSE: Nükleer Kontrol Fonksiyonunu Çağır
                 if (checkRejectionMatch(userAdText, correctObj.text)) {
                     isTextMatch = true;
                 }
             } else {
-                // NORMAL İLAN İSE: Katı Kontrol (Birebir Eşleşme)
                 if (userAdText === correctObj.text) {
                     isTextMatch = true;
                 }
@@ -241,13 +239,10 @@ function finishExam() {
 
             if (uCat === cCat) {
                 isCatMatch = true;
-            } 
-            // Rejected cevaplarda kategori bazen boş bırakılabilir, buna izin ver
-            else if (correctObj.text.toLowerCase().startsWith("reject") && (uCat === "" || uCat === "rejected")) {
+            } else if (correctObj.text.toLowerCase().startsWith("reject") && (uCat === "" || uCat === "rejected")) {
                 isCatMatch = true;
             }
 
-            // İkisi de doğruysa döngüyü kır ve puanı ver
             if (isTextMatch && isCatMatch) {
                 isQuestionPassed = true;
                 break; 
@@ -257,12 +252,9 @@ function finishExam() {
         if (isQuestionPassed) correctCount++;
         
         // --- HTML RAPORLAMA KISMI ---
-        
-        // 1. Metin Görünümü (Görsel Renklendirme)
         let adTextDisplay = "";
         let isTextVisualCorrect = false;
 
-        // Rapor ekranında yeşil yakmak için tekrar kontrol ediyoruz
         if (finalCorrectObj.text.toLowerCase().startsWith("reject")) {
              if (checkRejectionMatch(userAdText, finalCorrectObj.text)) isTextVisualCorrect = true;
         } else {
@@ -275,7 +267,6 @@ function finishExam() {
             adTextDisplay = `<span style="color:red; text-decoration:line-through;">${userAdText || "(Empty)"}</span> <br><span style="color:green; font-size:10px;">Expected: ${finalCorrectObj.text}</span>`;
         }
 
-        // 2. Kategori Görünümü (Görsel Renklendirme)
         let catDisplay = "";
         const uCatVisual = cleanCategory(userCatText);
         const cCatVisual = cleanCategory(finalCorrectObj.cat);
@@ -292,62 +283,107 @@ function finishExam() {
         }
 
         resultListHTML += `
-        <div style="margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:5px;">
-            <div style="font-weight:bold; font-size:12px; color:#333;">
+        <div style="margin-bottom:8px; border-bottom:1px solid #eee; padding-bottom:5px;">
+            <div style="font-weight:bold; font-size:11px; color:#333;">
                 Q${i+1}: ${isQuestionPassed ? '✅' : '❌'}
             </div>
-            <div style="font-size:11px; margin-left:15px; margin-top:2px;">
+            <div style="font-size:10px; margin-left:15px; margin-top:2px;">
                 <strong>Input:</strong> ${adTextDisplay}<br>
                 <strong>Cat:</strong> ${catDisplay}
             </div>
         </div>`;
     });
 
-    // --- SONUÇ HESAPLAMA VE PDF ÇIKTISI ---
+    // --- SONUÇ HESAPLAMA VE PDF ÇIKTISI (GÜNCELLENMİŞ) ---
     const isPassed = correctCount >= 5;
     const now = new Date();
     const examDateStr = now.toLocaleString('en-GB', { timeZone: 'Europe/London' });
-    
+
     let resultMessage = "";
     let statusColor = isPassed ? "green" : "red";
     let statusText = isPassed ? "PASSED" : "FAIL";
 
+    // UK Saat Dilimi Hesabı
+    const ukTimeStr = now.toLocaleString('en-US', { timeZone: 'Europe/London' });
+    const ukDate = new Date(ukTimeStr);
+    const retestDate = new Date(ukDate.getTime() + 4*60*60*1000); // 4 Saat Ekle
+    
+    // Tarih Formatı (DD.MM.YYYY HH:MM)
+    const dd = String(retestDate.getDate()).padStart(2, '0');
+    const mm = String(retestDate.getMonth() + 1).padStart(2, '0');
+    const yyyy = retestDate.getFullYear();
+    const formattedDate = `${dd}.${mm}.${yyyy}`;
+    
+    const hh = String(retestDate.getHours()).padStart(2, '0');
+    const min = String(retestDate.getMinutes()).padStart(2, '0');
+    const formattedTime = `${hh}:${min}`;
+
     if (isPassed) {
         resultMessage = `
-        <h3 style="color:green; margin-top:10px; border-bottom: 2px solid green; display:inline-block;">Result : ${correctCount}/7 (Passed)</h3>
-        <p style="font-size:11px;"><strong>${examData.title} ${examData.candidate}</strong><br>
-        Congratulations! Welcome to LifeInvader.</p>`;
+        <div style="margin-top: 20px; text-align: center;">
+            <h3 style="color:green; margin: 0;">Result : ${correctCount}/7</h3>
+            <h3 style="color:green; margin: 5px 0 15px 0;">Passed</h3>
+            
+            <p style="font-size:12px; margin-bottom: 15px;">
+                Congratulations🎉 ${examData.title} ${examData.candidate}, you have passed the test with ${correctCount}/7 correct answers!<br>
+                Welcome to LifeInvader.
+            </p>
+
+            <div style="background-color: #f8f9fa; padding: 10px; border-radius: 5px; text-align: left; font-size: 11px; border: 1px solid #dee2e6;">
+                <p style="margin-bottom: 8px;">Now, please watch the following videos to understand how to use the discord channels, their purpose, and how to use the PDA:</p>
+                <ul style="margin-bottom: 8px; padding-left: 20px;">
+                    <li><a href="https://youtu.be/-Urb1XQpYJI" target="_blank" style="color: #0d6efd; font-weight: bold; text-decoration: underline;">Emails training</a></li>
+                    <li><a href="https://www.youtube.com/watch?v=4_VSZONyonI&ab_channel=Nor!" target="_blank" style="color: #0d6efd; font-weight: bold; text-decoration: underline;">PDA training</a></li>
+                </ul>
+                <p style="margin: 0;">Watch them carefully to get a better understanding of how things work. Only after watching these videos you will receive the appropriate rank to start working.</p>
+            </div>
+        </div>`;
     } else {
-        const retestTime = new Date(now.getTime() + 4*60*60*1000);
         resultMessage = `
-        <h3 style="color:red; margin-top:10px; border-bottom: 2px solid red; display:inline-block;">Result : ${correctCount}/7 (Fail)</h3>
-        <p style="font-size:11px;">Retest available after: <strong>${retestTime.toLocaleTimeString('en-GB', {timeZone:'Europe/London'})}</strong></p>`;
+        <div style="margin-top: 20px; text-align: center;">
+            <h3 style="color:red; margin: 0;">Result : ${correctCount}/7</h3>
+            <h3 style="color:red; margin: 5px 0 15px 0;">Fail</h3>
+            
+            <p style="font-size:12px; line-height: 1.6;">
+                ${examData.title} ${examData.candidate} So sorry to tell you, but you've failed the test with ${correctCount}/7 Correct Answers.<br>
+                You are eligible to take restest after 4 hours on <strong>${formattedDate}</strong> at <strong>${formattedTime}</strong> (UK saati ile) city time.
+            </p>
+        </div>`;
     }
 
     const reportHTML = `
-    <div id="final-report-view" style="font-family: Arial, sans-serif; padding: 40px; background-color: #ffffff; color: #000000; max-width: 800px; margin: 0 auto; min-height: 100vh;">
+    <div id="final-report-view" style="font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; background-color: #ffffff; color: #000000; width: 100%; max-width: 800px; margin: 0 auto;">
         <div style="text-align:center; margin-bottom:15px;">
-            <img src="https://li-exam-team.github.io/LI-Test-Bank-EN1/LILOGO.jpg" style="height: 60px; width: auto; display:block; margin: 0 auto;">
-            <h2 style="color: #d32f2f; margin: 5px 0;">LifeInvader Exam Result</h2>
+            <img src="https://li-exam-team.github.io/LI-Test-Bank-EN1/LILOGO.jpg" style="height: 50px; width: auto; display:block; margin: 0 auto;">
+            <h2 style="color: #d32f2f; margin: 10px 0 5px 0;">LifeInvader Exam Result</h2>
             <hr style="margin: 5px 0; border: 1px solid #d32f2f;">
         </div>
+        
         <table style="width:100%; margin-bottom:15px; font-size:11px; border-collapse: collapse;">
-            <tr><td><strong>Admin:</strong> ${examData.admin}</td><td style="text-align:right;">${examDateStr}</td></tr>
-            <tr><td><strong>Candidate:</strong> ${examData.title} ${examData.candidate}</td><td style="text-align:right; font-weight:bold; color:${statusColor}">${statusText}</td></tr>
+            <tr>
+                <td><strong>Admin:</strong> ${examData.admin}</td>
+                <td style="text-align:right;">${examDateStr}</td>
+            </tr>
+            <tr>
+                <td><strong>Candidate:</strong> ${examData.title} ${examData.candidate}</td>
+                <td style="text-align:right; font-weight:bold; color:${statusColor}">${statusText}</td>
+            </tr>
         </table>
         
         <div style="background-color:#fcfcfc; padding:15px; border-radius:5px; border:1px solid #eee; margin-bottom:15px;">
-            <h4 style="margin-top:0; margin-bottom:10px; border-bottom:1px solid #ccc;">Answers Detail:</h4>
+            <h5 style="margin-top:0; margin-bottom:10px; border-bottom:1px solid #ccc; padding-bottom: 5px;">Answers Detail:</h5>
             ${resultListHTML}
         </div>
 
         ${resultMessage}
         
         <div style="margin-top:30px; text-align:center; font-size:9px; color:gray;">
-            <hr>OFFICIAL LIFEINVADER DOCUMENT
+            <hr style="margin-bottom: 5px;">
+            OFFICIAL LIFEINVADER DOCUMENT
         </div>
+        
         <div style="text-align:center; margin-top:20px;">
-            <p style="color: green; font-weight: bold;">✅ Exam Completed. Downloading PDF...</p>
+            <p style="color: green; font-weight: bold; font-size: 14px;">✅ Exam Completed. Downloading PDF...</p>
         </div>
     </div>`;
 
