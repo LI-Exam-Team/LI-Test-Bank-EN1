@@ -174,6 +174,9 @@ function checkRejectionMatch(userAnswer, correctAnswer) {
             .replace(/[:+\-&]/g, "")               // Sembolleri at (+ - : &)
             .replace(/\band\b/g, "")               // "and" bağlacını at
             .replace(/\s+/g, " ")                  // Boşlukları temizle
+            // --- YENİ EKLENEN KRİTİK SATIR ---
+            .replace(/\b(admin|admins|god|gods)\b/g, "gods") // Admin ve God kelimelerini eşitle
+            // ---------------------------------
             .trim();
     }
 
@@ -181,10 +184,9 @@ function checkRejectionMatch(userAnswer, correctAnswer) {
     const cClean = stripJunk(c);
 
     // İNİSİYATİF: Kullanıcı sadece "Rejected" yazıp bıraktıysa ve sebep belirtmediyse
-    // (Bazen sadece reddetmek yeterli olabilir, bu durumu kabul ediyoruz)
     if (uClean === "" || uClean.length < 3) return true; 
 
-    // Sebep yazıldıysa, sebebin doğru cevapla eşleşmesi gerekir (admin/admins gibi basit farklar hariç birebir bakar)
+    // Sebep yazıldıysa, sebebin doğru cevapla eşleşmesi gerekir
     return uClean === cClean;
 }
 
